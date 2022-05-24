@@ -12,16 +12,6 @@ LIC_FILES_CHKSUM = " \
     file://LICENSE.FDL;md5=6d9f2a9af4c8b8c3c769f6cc1b6aaf7e \
 "
 
-# Patches from https://github.com/meta-qt5/qtdeclarative/commits/b5.15
-# 5.15.meta-qt5.1
-SRC_URI += " \
-    file://0001-Use-OE_QMAKE_PATH_EXTERNAL_HOST_BINS-to-locate-qmlca.patch \
-    file://0001-yarr-Include-limits-for-numeric_limits.patch \
-    file://0001-qmldebug-Include-limits-header.patch \
-"
-
-LDFLAGS:append:riscv64 = " -pthread"
-
 DEPENDS += "qtbase qtdeclarative-native"
 
 PACKAGECONFIG ??= "qml-debug qml-network ${@bb.utils.contains('DISTRO_FEATURES', 'qt5-static', 'static', '', d)}"
@@ -55,6 +45,10 @@ do_install:append:class-nativesdk() {
     rm -rf ${D}${OE_QMAKE_PATH_QML}
 }
 
-SRCREV = "32b37e20f7d0aebb9f4138229939dd756d4c05ec"
+SRCREV = "v5.12.12"
 
 BBCLASSEXTEND =+ "native nativesdk"
+
+SRC_URI += "file://0001-Fix-build-with-gcc-11.patch \
+    file://0001-Use-python3-explicitly.patch \
+"

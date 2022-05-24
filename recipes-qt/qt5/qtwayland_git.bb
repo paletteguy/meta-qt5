@@ -15,19 +15,11 @@ LIC_FILES_CHKSUM = " \
     file://LICENSE.FDL;md5=6d9f2a9af4c8b8c3c769f6cc1b6aaf7e \
 "
 
-# Patches from https://github.com/meta-qt5/qtwayland/commits/b5.15
-# 5.15.meta-qt5.1
-SRC_URI += "file://0001-tst_seatv4-Include-array.patch \
-            file://0001-linux-dmabuf-unstable-v1-Include-missing-array-heade.patch \
-            file://0001-Fix-vulkan-buffer-formats-for-GLES2.patch \
-           "
-
 PACKAGECONFIG ?= " \
     wayland-client \
     wayland-server \
-    ${@bb.utils.contains('DISTRO_FEATURES', 'opengl wayland', 'wayland-egl', '', d)} \
+    wayland-egl \
     ${@bb.utils.contains('DISTRO_FEATURES', 'x11', 'xcomposite-egl xcomposite-glx', '', d)} \
-    ${@bb.utils.contains('DISTRO_FEATURES', 'vulkan', 'wayland-vulkan-server-buffer', '', d)} \
 "
 PACKAGECONFIG:class-native ?= ""
 PACKAGECONFIG:class-nativesdk ?= ""
@@ -44,14 +36,42 @@ PACKAGECONFIG[wayland-egl] = "-feature-wayland-egl,-no-feature-wayland-egl,virtu
 PACKAGECONFIG[wayland-brcm] = "-feature-wayland-brcm,-no-feature-wayland-brcm,virtual/egl"
 PACKAGECONFIG[wayland-drm-egl-server-buffer] = "-feature-wayland-drm-egl-server-buffer,-no-feature-wayland-drm-egl-server-buffer,libdrm virtual/egl"
 PACKAGECONFIG[wayland-libhybris-egl-server-buffer] = "-feature-wayland-libhybris-egl-server-buffer,-no-feature-wayland-libhybris-egl-server-buffer,libhybris"
-PACKAGECONFIG[wayland-vulkan-server-buffer] = "-feature-wayland-vulkan-server-buffer,-no-feature-wayland-vulkan-server-buffer,vulkan-headers"
 
 EXTRA_QMAKEVARS_CONFIGURE += "${PACKAGECONFIG_CONFARGS}"
 
-SRCREV = "f9dfeb6e7236711cba303858005693d40e90be90"
+SRCREV = "v5.12.12"
 
 BBCLASSEXTEND =+ "native nativesdk"
 
 # The same issue as in qtbase:
 # http://errors.yoctoproject.org/Errors/Details/152641/
 LDFLAGS:append = "${@bb.utils.contains('DISTRO_FEATURES', 'ld-is-gold', ' -fuse-ld=bfd ', '', d)}"
+
+# Since version 5.11.2 some private headers are not installed. Work around
+# until fixed upstream. See https://bugreports.qt.io/browse/QTBUG-71340 for
+# further details
+QTWAYLAND_INSTALL_PRIVATE_HEADERS_MANUALLY ?= "1"
+# First 6 characters before first + (e.g. 5.11.3-+git) or - (e.g. 5.11.3-2)
+SHRT_VER ?= "${@d.getVar('PV').split('+')[0].split('-')[0]}"
+do_install:append() {
+    if [ -d "${B}/src/client" -a "${QTWAYLAND_INSTALL_PRIVATE_HEADERS_MANUALLY}" = "1" -a -d "${D}${includedir}/QtWaylandClient/${SHRT_VER}/QtWaylandClient/private/" ]; then
+        for header in `find ${B}/src/client -name '*wayland-*.h'`; do
+            header_base=`basename $header`
+            dest="${D}${includedir}/QtWaylandClient/${SHRT_VER}/QtWaylandClient/private/$header_base"
+            if [ ! -e "$dest" ]; then
+                echo "Manual install: $header_base to $dest"
+                install -m 644 "$header" "$dest"
+            fi
+        done
+    fi
+    if [ -d "${B}/src/compositor" -a "${QTWAYLAND_INSTALL_PRIVATE_HEADERS_MANUALLY}" = "1" -a -d "${D}${includedir}/QtCompositor/${SHRT_VER}/QtCompositor/private/" ]; then
+        for header in `find ${B}/src/compositor -name '*wayland-*.h'`; do
+            header_base=`basename $header`
+            dest="${D}${includedir}/QtCompositor/${SHRT_VER}/QtCompositor/private/$header_base"
+            if [ ! -e "$dest" ]; then
+                echo "Manual install: $header_base to $dest"
+                install -m 644 "$header" "$dest"
+            fi
+        done
+    fi
+}

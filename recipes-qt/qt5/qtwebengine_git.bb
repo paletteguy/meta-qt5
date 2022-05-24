@@ -12,24 +12,20 @@ LIC_FILES_CHKSUM = " \
 "
 
 DEPENDS += " \
-    dbus \
     libpng-native \
     nss-native \
     nspr-native \
     ninja-native \
     nasm-native \
-    nodejs-native \
     bison-native \
     qtwebchannel \
     qtbase qtdeclarative qtxmlpatterns qtquickcontrols qtquickcontrols2 \
     qtlocation \
-    libdrm libxkbcommon fontconfig pixman openssl pango cairo pciutils nss \
+    libdrm fontconfig pixman openssl pango cairo icu pciutils nss \
     libcap \
-    jpeg-native \
-    freetype-native \
     gperf-native \
     ${@bb.utils.contains('DISTRO_FEATURES', 'alsa', 'alsa-lib', '', d)} \
-    ${@bb.utils.contains('DISTRO_FEATURES', 'x11', 'libxkbfile libxcomposite libxcursor libxi libxrandr libxtst', '', d)} \
+    ${@bb.utils.contains('DISTRO_FEATURES', 'x11', 'libxcomposite libxcursor libxi libxrandr libxtst', '', d)} \
 "
 
 DEPENDS:append:libc-musl = " libexecinfo"
@@ -47,11 +43,9 @@ EXTRA_QMAKEVARS_PRE += "CONFIG+=force_debug_info"
 # http://errors.yoctoproject.org/Errors/Details/150333/
 SECURITY_STRINGFORMAT = ""
 
-# To use system ffmpeg you need to enable also libwebp, opus, libvpx
+# To use system ffmpeg you need to enable also libwebp, opus, vpx
 # Only depenedencies available in oe-core are enabled by default
-PACKAGECONFIG ??= "libevent libpng \
-                   ${@bb.utils.contains('DISTRO_FEATURES', 'pulseaudio', 'pulseaudio', '', d)}"
-
+PACKAGECONFIG ??= "libwebp libevent libpng"
 PACKAGECONFIG[icu] = "-feature-webengine-system-icu,-no-feature-webengine-system-icu,icu"
 PACKAGECONFIG[ffmpeg] = "-feature-webengine-system-ffmpeg,-no-feature-webengine-system-ffmpeg,libav"
 PACKAGECONFIG[webrtc] = "-feature-webengine-webrtc,-no-feature-webengine-webrtc,libvpx"
@@ -63,13 +57,14 @@ PACKAGECONFIG[libpng] = "-feature-webengine-system-png,-no-feature-webengine-sys
 PACKAGECONFIG[harfbuzz] = "-feature-webengine-system-harfbuzz,-no-feature-webengine-system-harfbuzz,harfbuzz"
 PACKAGECONFIG[glib] = "-feature-webengine-system-glib,-no-feature-webengine-system-glib,glib-2.0"
 PACKAGECONFIG[zlib] = "-feature-webengine-system-zlib,-no-feature-webengine-system-zlib,zlib"
+PACKAGECONFIG[protobuf] = "-feature-webengine-system-protobuf,-no-feature-webengine-system-protobuf,protobuf"
+PACKAGECONFIG[jasoncpp] = "-feature-webengine-system-jsoncpp,-no-feature-webengine-system-jsoncpp,jasoncpp"
 PACKAGECONFIG[libxml2] = "-feature-webengine-system-libxml2,-no-feature-webengine-system-libxml2,libxml2"
 PACKAGECONFIG[minizip] = "-feature-webengine-system-minizip,-no-feature-webengine-system-minizip,minizip"
 PACKAGECONFIG[proprietary-codecs] = "-feature-webengine-proprietary-codecs,-no-feature-webengine-proprietary-codecs"
 PACKAGECONFIG[pepper-plugins] = "-feature-webengine-pepper-plugins,-no-feature-webengine-pepper-plugins"
 PACKAGECONFIG[printing-and-pdf] = "-feature-webengine-printing-and-pdf,-no-feature-webengine-printing-and-pdf"
 PACKAGECONFIG[spellchecker] = "-feature-webengine-spellchecker,-no-feature-webengine-spellchecker"
-PACKAGECONFIG[pulseaudio] = "-feature-webengine-pulseaudio,-no-feature-webengine-pulseaudio,pulseaudio"
 
 EXTRA_QMAKEVARS_CONFIGURE += "${PACKAGECONFIG_CONFARGS}"
 
@@ -146,60 +141,54 @@ RDEPENDS:${PN}-examples += " \
     qtdeclarative-qmlplugins \
 "
 
-QT_MODULE_BRANCH_CHROMIUM = "87-based"
+QT_MODULE_BRANCH_CHROMIUM = "69-based"
 
-QT_MODULE_BRANCH = "5.15"
-PV = "5.15.8+git${SRCPV}"
-
-# Patches from https://github.com/meta-qt5/qtwebengine/commits/b5.15-glibc
-# 5.15-glibc.meta-qt5.13
+# Patches from https://github.com/meta-qt5/qtwebengine/commits/b5.12
+# 5.12.meta-qt5.4
 SRC_URI += " \
     ${QT_GIT}/qtwebengine-chromium.git;name=chromium;branch=${QT_MODULE_BRANCH_CHROMIUM};protocol=${QT_GIT_PROTOCOL};destsuffix=git/src/3rdparty \
     file://0001-Force-host-toolchain-configuration.patch \
-    file://0002-qmake.conf-lower-MODULE_VERSION-to-5.15.2.patch \
+    file://0002-Remove-ninja-version-test-for-now-it-fails-for-ninja.patch \
 "
-# Patches from https://github.com/meta-qt5/qtwebengine/commits/b5.15
-# 5.15.meta-qt5.13
 SRC_URI:append:libc-musl = "\
-    file://0003-musl-don-t-use-pvalloc-as-it-s-not-available-on-musl.patch \
-    file://0004-musl-link-against-libexecinfo.patch \
-    file://0005-mkspecs-Allow-builds-with-libc-glibc.patch \
+    file://0002-musl-don-t-use-pvalloc-as-it-s-not-available-on-musl.patch \
+    file://0003-musl-link-against-libexecinfo.patch \
 "
 
-# Patches from https://github.com/meta-qt5/qtwebengine-chromium/commits/87-based-glibc
-# 87-based-glibc.meta-qt5.6
+# Patches from https://github.com/meta-qt5/qtwebengine-chromium/commits/69-based
+# 69-based.meta-qt5.4
 SRC_URI += " \
-    file://chromium/0001-chromium-workaround-for-too-long-.rps-file-name.patch;patchdir=src/3rdparty \
-    file://chromium/0002-chromium-fix-build-with-clang.patch;patchdir=src/3rdparty \
-    file://chromium/0003-chromium-Exclude-CRC32-for-32bit-arm.patch;patchdir=src/3rdparty \
-    file://chromium/0004-chromium-Do-not-try-to-set-the-guessed-values-for.patch;patchdir=src/3rdparty \
-    file://chromium/0005-chromium-fix-build-after-y2038-changes-in-glibc.patch;patchdir=src/3rdparty \
-    file://chromium/0006-chromium-Fix-build-on-32bit-arches-with-64bit-time_t.patch;patchdir=src/3rdparty \
-    file://chromium/0007-chromium-Include-cstddef-for-size_t-definition.patch;patchdir=src/3rdparty \
-    file://chromium/0008-chromium-Move-CharAllocator-definition-to-a-header-f.patch;patchdir=src/3rdparty \
-    file://chromium/0009-chromium-Link-v8-with-libatomic-on-x86.patch;patchdir=src/3rdparty \
-    file://chromium/0010-chromium-icu-use-system-library-only-targets.patch;patchdir=src/3rdparty \
-    file://chromium/0023-chromium-remove-true-to-prep-landing-of-icu68.patch;patchdir=src/3rdparty \
+    file://chromium/0001-chromium-Force-host-toolchain-configuration.patch;patchdir=src/3rdparty \
+    file://chromium/0002-chromium-workaround-for-too-long-.rps-file-name.patch;patchdir=src/3rdparty \
+    file://chromium/0003-chromium-Fix-build-with-gcc8.patch;patchdir=src/3rdparty \
+    file://chromium/0004-chromium-stack-pointer-clobber.patch;patchdir=src/3rdparty \
+    file://chromium/0019-chromium-fix-build-with-clang.patch;patchdir=src/3rdparty \
+    file://chromium/0020-chromium-Check-for-__ARM_FP-2-before-using-__fp16.patch;patchdir=src/3rdparty \
+    file://chromium/0021-chromium-Exclude-CRC32-for-32bit-arm.patch;patchdir=src/3rdparty \
+    file://chromium/0022-chromium-Do-not-try-to-set-the-guessed-values-for-ma.patch;patchdir=src/3rdparty \
+    file://chromium/0007-chromium-fix-build-after-y2038-changes-in-glibc.patch;patchdir=src/3rdparty \
+    file://chromium/0013-chromium-breakpad-fix-build-with-glibc-2.34.patch;patchdir=src/3rdparty \
 "
 
-# Patches from https://github.com/meta-qt5/qtwebengine-chromium/commits/87-based
-# 87-based.meta-qt5.6
 SRC_URI:append:libc-musl = "\
-    file://chromium/0012-chromium-musl-sandbox-Define-TEMP_FAILURE_RETRY-if-n.patch;patchdir=src/3rdparty \
-    file://chromium/0013-chromium-musl-Avoid-mallinfo-APIs-on-non-glibc-linux.patch;patchdir=src/3rdparty \
-    file://chromium/0014-chromium-musl-include-fcntl.h-for-loff_t.patch;patchdir=src/3rdparty \
-    file://chromium/0015-chromium-musl-use-off64_t-instead-of-the-internal-__.patch;patchdir=src/3rdparty \
-    file://chromium/0016-chromium-musl-linux-glibc-make-the-distinction.patch;patchdir=src/3rdparty \
-    file://chromium/0017-chromium-musl-Define-res_ninit-and-res_nclose-for-no.patch;patchdir=src/3rdparty \
-    file://chromium/0018-chromium-musl-Do-not-define-__sbrk-on-musl.patch;patchdir=src/3rdparty \
-    file://chromium/0019-chromium-musl-Adjust-default-pthread-stack-size.patch;patchdir=src/3rdparty \
-    file://chromium/0020-chromium-musl-elf_reader.cc-include-sys-reg.h-to-get.patch;patchdir=src/3rdparty \
-    file://chromium/0021-chromium-musl-pread-pwrite.patch;patchdir=src/3rdparty \
-    file://chromium/0022-chromium-musl-initialize-msghdr-in-a-compatible-mann.patch;patchdir=src/3rdparty \
+    file://chromium/0005-chromium-musl-sandbox-Define-TEMP_FAILURE_RETRY-if-n.patch;patchdir=src/3rdparty \
+    file://chromium/0006-chromium-musl-Avoid-mallinfo-APIs-on-non-glibc-linux.patch;patchdir=src/3rdparty \
+    file://chromium/0007-chromium-musl-include-fcntl.h-for-loff_t.patch;patchdir=src/3rdparty \
+    file://chromium/0008-chromium-musl-use-off64_t-instead-of-the-internal-__.patch;patchdir=src/3rdparty \
+    file://chromium/0009-chromium-musl-linux-glibc-make-the-distinction.patch;patchdir=src/3rdparty \
+    file://chromium/0010-chromium-musl-allocator-Do-not-include-glibc_weak_sy.patch;patchdir=src/3rdparty \
+    file://chromium/0011-chromium-musl-Use-correct-member-name-__si_fields-fr.patch;patchdir=src/3rdparty \
+    file://chromium/0012-chromium-musl-Define-res_ninit-and-res_nclose-for-no.patch;patchdir=src/3rdparty \
+    file://chromium/0013-chromium-musl-Do-not-define-__sbrk-on-musl.patch;patchdir=src/3rdparty \
+    file://chromium/0014-chromium-musl-Adjust-default-pthread-stack-size.patch;patchdir=src/3rdparty \
+    file://chromium/0015-chromium-musl-include-asm-generic-ioctl.h-for-TCGETS.patch;patchdir=src/3rdparty \
+    file://chromium/0016-chromium-musl-Use-_fpstate-instead-of-_libc_fpstate-.patch;patchdir=src/3rdparty \
+    file://chromium/0017-chromium-musl-elf_reader.cc-include-sys-reg.h-to-get.patch;patchdir=src/3rdparty \
+    file://chromium/0018-chromium-musl-pread-pwrite.patch;patchdir=src/3rdparty \
 "
 
-SRCREV_qtwebengine = "73e76f9e86b3fded45be6b232bdebe75e7136e4a"
-SRCREV_chromium = "48a205f9e054b5cc3e67df2e25382da9460c0015"
+SRCREV_qtwebengine = "56e97848125329780566db8164c9753872e65f0f"
+SRCREV_chromium = "78831e7aca3f82a0c64499706c8017c13389efa3"
 SRCREV = "${SRCREV_qtwebengine}"
 
 SRCREV_FORMAT = "qtwebengine_chromium"

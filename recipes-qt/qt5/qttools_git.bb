@@ -12,34 +12,30 @@ LIC_FILES_CHKSUM = " \
 "
 
 DEPENDS += "qtbase qtdeclarative qtxmlpatterns"
-# Patches from https://github.com/meta-qt5/qttools/commits/b5.15
-# 5.15.meta-qt5.1
+
+# Patches from https://github.com/meta-qt5/qttools/commits/b5.12
+# 5.12.meta-qt5.2
 SRC_URI += " \
     file://0001-add-noqtwebkit-configuration.patch \
     file://0002-linguist-tools-cmake-allow-overriding-the-location-f.patch \
-    file://0003-src.pro-Add-option-noqdoc-to-disable-qdoc-builds.patch \
 "
-SRC_URI:append:class-native = " ${@bb.utils.contains('PACKAGECONFIG', 'clang', 'file://0004-Force-native-build-of-qt-help-tools-as-qhelpgenerato.patch', '', d)}"
 
 FILES:${PN}-tools += "${datadir}${QT_DIR_NAME}/phrasebooks"
 FILES:${PN}-examples = "${datadir}${QT_DIR_NAME}/examples"
 
 PACKAGECONFIG ??= ""
-PACKAGECONFIG:append:toolchain-clang = " clang"
-
 PACKAGECONFIG[qtwebkit] = ",,qtwebkit"
-PACKAGECONFIG[clang] = ",,clang"
-
-COMPATIBLE_HOST:toolchain-clang:riscv32 = "null"
-COMPATIBLE_HOST:toolchain-clang:riscv64 = "null"
-
-export YOCTO_ALTERNATE_EXE_PATH = "${STAGING_BINDIR}/llvm-config"
 
 EXTRA_QMAKEVARS_PRE += " \
+    CONFIG-=config_clang \
     ${@bb.utils.contains('PACKAGECONFIG', 'qtwebkit', '', 'CONFIG+=noqtwebkit', d)} \
-    ${@bb.utils.contains('PACKAGECONFIG', 'clang', 'CONFIG+=disable_external_rpath CONFIG+=assistant', 'CONFIG+=noqdoc', d)} \
 "
-SRCREV = "d488fd08333d53636880c9b2198ef38ef17cf56c"
+SRCREV = "v5.12.12"
 
 BBCLASSEXTEND = "native nativesdk"
 
+do_install_ptest() {
+    mkdir -p ${D}${PTEST_PATH}
+    t=${D}${PTEST_PATH}
+    cp ${B}/tests/auto/qtattributionsscanner/tst_qtattributionsscanner $t
+}

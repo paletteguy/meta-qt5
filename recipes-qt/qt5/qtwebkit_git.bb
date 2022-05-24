@@ -23,7 +23,6 @@ SRC_URI += "\
     file://0007-Fix-compilation-with-Python-3.9-avoid-passing-encodi.patch \
     file://0008-Fix-build-with-icu-68.patch \
     file://0009-Riscv-Add-support-for-riscv.patch \
-    file://mips-atomic.patch \
 "
 
 SRC_URI:append:riscv32 = " file://0010-webdriver-libatomic.patch "
@@ -52,7 +51,6 @@ ARM_INSTRUCTION_SET:armv7ve = "thumb"
 # just use -fpermissive in this case like fedora did:
 # https://bugzilla.redhat.com/show_bug.cgi?id=1582954
 CXXFLAGS += "-fpermissive"
-CXXFLAGS += "${@bb.utils.contains('DISTRO_FEATURES', 'x11', '', '-DEGL_NO_X11=1', d)}"
 
 EXTRA_OECMAKE += " \
     -DPORT=Qt \

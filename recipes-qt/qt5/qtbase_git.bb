@@ -13,8 +13,8 @@ LIC_FILES_CHKSUM = " \
 "
 
 # common for qtbase-native, qtbase-nativesdk and qtbase
-# Patches from https://github.com/meta-qt5/qtbase/commits/b5.15-shared
-# 5.15.meta-qt5-shared.3
+# Patches from https://github.com/meta-qt5/qtbase/commits/b5.12-shared
+# 5.12.meta-qt5-shared.12
 SRC_URI += "\
     file://0001-Add-linux-oe-g-platform.patch \
     file://0002-cmake-Use-OE_QMAKE_PATH_EXTERNAL_HOST_BINS.patch \
@@ -27,20 +27,14 @@ SRC_URI += "\
     file://0009-Add-OE-specific-specs-for-clang-compiler.patch \
     file://0010-linux-clang-Invert-conditional-for-defining-QT_SOCKL.patch \
     file://0011-tst_qlocale-Enable-QT_USE_FENV-only-on-glibc.patch \
-    file://0012-Disable-ltcg-for-host_build.patch \
-    file://0013-Qt5GuiConfigExtras.cmake.in-cope-with-variable-path-.patch \
-    file://0014-corelib-Include-sys-types.h-for-uint32_t.patch \
-    file://0015-Define-QMAKE_CXX.COMPILER_MACROS-for-clang-on-linux.patch \
-    file://0016-tst_qpainter-FE_-macros-are-not-defined-for-every-pl.patch \
-    file://0017-Define-__NR_futex-if-it-does-not-exist.patch \
-    file://0018-Revert-Fix-workaround-in-pthread-destructor.patch \
-    file://0019-tst_QPluginLoader-Simplify-creating-a-fake-pointer-i.patch \
-    file://0020-qbytearraymatcher-Include-limits-header.patch \
+    file://0012-mkspecs-common-gcc-base.conf-Use-I-instead-of-isyste.patch \
+    file://0013-Disable-ltcg-for-host_build.patch \
+    file://0014-Qt5GuiConfigExtras.cmake.in-cope-with-variable-path-.patch \
+    file://0015-corelib-Include-sys-types.h-for-uint32_t.patch \
+    file://0016-Define-QMAKE_CXX.COMPILER_MACROS-for-clang-on-linux.patch \
+    file://0017-Fix-Wdeprecated-copy-warnings.patch \
+    file://0018-qfloat16-Include-limits-header.patch \
 "
-
-# Disable LTO for now, QT5 patches are being worked upstream, perhaps revisit with
-# next major upgrade of QT
-LTO = ""
 
 # for syncqt
 RDEPENDS:${PN}-tools += "perl"
@@ -50,7 +44,7 @@ inherit pkgconfig
 # separate some parts of PACKAGECONFIG which are often changed
 PACKAGECONFIG_GL ?= "${@bb.utils.contains('DISTRO_FEATURES', 'opengl', 'gl', 'no-opengl', d)}"
 PACKAGECONFIG_FB ?= "${@bb.utils.contains('DISTRO_FEATURES', 'directfb', 'directfb', '', d)}"
-PACKAGECONFIG_X11 ?= "${@bb.utils.contains('DISTRO_FEATURES', 'x11', 'xcb glib xkbcommon', '', d)}"
+PACKAGECONFIG_X11 ?= "${@bb.utils.contains('DISTRO_FEATURES', 'x11', 'xcb xcb-xinput glib xkb xkbcommon', '', d)}"
 PACKAGECONFIG_KDE ?= "${@bb.utils.contains('DISTRO_FEATURES', 'kde', 'sm cups fontconfig kms gbm libinput sql-sqlite openssl', '', d)}"
 PACKAGECONFIG_FONTS ?= ""
 PACKAGECONFIG_SYSTEM ?= "jpeg libpng zlib"
@@ -59,11 +53,9 @@ PACKAGECONFIG_DISTRO ?= ""
 PACKAGECONFIG_RELEASE ?= "release"
 # This is in qt5.inc, because qtwebkit-examples are using it to enable ca-certificates dependency
 # PACKAGECONFIG_OPENSSL ?= "openssl"
-PACKAGECONFIG_DEFAULT ?= "accessibility dbus udev evdev widgets tools libs freetype pcre \
+PACKAGECONFIG_DEFAULT ?= "accessibility dbus udev evdev widgets tools libs freetype tests \
     ${@bb.utils.contains('SELECTED_OPTIMIZATION', '-Os', 'optimize-size ltcg', '', d)} \
-    ${@bb.utils.contains('DISTRO_FEATURES', 'ptest', 'tests', '', d)} \
     ${@bb.utils.contains('DISTRO_FEATURES', 'qt5-static', 'static', '', d)} \
-    ${@bb.utils.filter('DISTRO_FEATURES', 'vulkan', d)} \
 "
 
 PACKAGECONFIG ?= " \
@@ -115,7 +107,7 @@ PACKAGECONFIG[no-opengl] = "-no-opengl"
 PACKAGECONFIG[tslib] = "-tslib,-no-tslib,tslib"
 PACKAGECONFIG[cups] = "-cups,-no-cups,cups"
 PACKAGECONFIG[dbus] = "-dbus,-no-dbus,dbus"
-PACKAGECONFIG[xcb] = "-xcb -xcb-xlib -no-bundled-xcb-xinput,-no-xcb,libxcb xcb-util-wm xcb-util-image xcb-util-keysyms xcb-util-renderutil libxext"
+PACKAGECONFIG[xcb] = "-xcb -xcb-xlib -system-xcb,-no-xcb,libxcb xcb-util-wm xcb-util-image xcb-util-keysyms xcb-util-renderutil libxext"
 PACKAGECONFIG[sql-ibase] = "-sql-ibase,-no-sql-ibase"
 PACKAGECONFIG[sql-mysql] = "-sql-mysql -mysql_config ${STAGING_BINDIR_CROSS}/mysql_config,-no-sql-mysql,mysql5"
 PACKAGECONFIG[sql-psql] = "-sql-psql,-no-sql-psql,postgresql"
@@ -125,11 +117,12 @@ PACKAGECONFIG[sql-tds] = "-sql-tds,-no-sql-tds"
 PACKAGECONFIG[sql-db2] = "-sql-db2,-no-sql-db2"
 PACKAGECONFIG[sql-sqlite2] = "-sql-sqlite2,-no-sql-sqlite2,sqlite"
 PACKAGECONFIG[sql-sqlite] = "-sql-sqlite -system-sqlite,-no-sql-sqlite,sqlite3"
+PACKAGECONFIG[xcb-xinput] = "-xcb-xinput,-no-xcb-xinput,libxcb"
 PACKAGECONFIG[iconv] = "-iconv,-no-iconv,virtual/libiconv"
+PACKAGECONFIG[xkb] = "-xkb,-no-xkb -no-xkbcommon,libxkbcommon"
 PACKAGECONFIG[xkbcommon] = "-xkbcommon,-no-xkbcommon,libxkbcommon,xkeyboard-config"
 PACKAGECONFIG[evdev] = "-evdev,-no-evdev"
 PACKAGECONFIG[mtdev] = "-mtdev,-no-mtdev,mtdev"
-PACKAGECONFIG[lttng] = "-trace lttng,-trace no,lttng-ust"
 # depends on glib
 PACKAGECONFIG[fontconfig] = "-fontconfig,-no-fontconfig,fontconfig"
 PACKAGECONFIG[gtk] = "-gtk,-no-gtk,gtk+3"
@@ -181,10 +174,9 @@ QT_CONFIG_FLAGS_GOLD = "${@bb.utils.contains('DISTRO_FEATURES', 'ld-is-gold', '-
 QT_CONFIG_FLAGS_GOLD = "-no-use-gold-linker"
 LDFLAGS:append = "${@bb.utils.contains('DISTRO_FEATURES', 'ld-is-gold', ' -fuse-ld=bfd ', '', d)}"
 
-LDFLAGS:append:riscv64 = " -pthread"
-
 QT_CONFIG_FLAGS += " \
     ${QT_CONFIG_FLAGS_GOLD} \
+    -shared \
     -silent \
     -no-pch \
     -no-rpath \
@@ -261,8 +253,9 @@ do_install:append() {
 
     echo "" >> $conf
     echo "# default compiler options which can be overwritten from the environment" >> $conf
-    echo "count(QMAKE_AR, 1): QMAKE_AR = ${OE_QMAKE_AR} cqs" >> $conf
+    echo "isEmpty(QMAKE_AR): QMAKE_AR = ${OE_QMAKE_AR} cqs" >> $conf
     echo "isEmpty(QMAKE_CC): QMAKE_CC = $OE_QMAKE_CC_NO_SYSROOT" >> $conf
+    echo "isEmpty(QMAKE_CFLAGS): QMAKE_CFLAGS = ${OE_QMAKE_CFLAGS}" >> $conf
     echo "isEmpty(QMAKE_CXX): QMAKE_CXX = $OE_QMAKE_CXX_NO_SYSROOT" >> $conf
     # OE_QMAKE_CFLAGS and OE_QMAKE_CXXFLAGS contain path of the build host, which is not useful for the target.
     echo "isEmpty(QMAKE_CFLAGS): QMAKE_CFLAGS = ${OE_QMAKE_CFLAGS}" | sed -e 's/-fdebug-prefix-map=[^ ]*//g' | sed -e 's/-fmacro-prefix-map=[^ ]*//g' >> $conf
@@ -308,4 +301,4 @@ sed -i \
     $D${OE_QMAKE_PATH_ARCHDATA}/mkspecs/qmodule.pri
 }
 
-SRCREV = "c95f96550fc74b00bb0d3a82e7cb6b0e20bc76ac"
+SRCREV = "v5.12.12"

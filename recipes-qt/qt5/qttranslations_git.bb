@@ -10,7 +10,7 @@ DEPENDS += "qtbase qttools-native"
 
 do_install:append() {
     # remove qtquick1 translations - qtquick1 is gone
-    for transfile in `find ${D}/${OE_QMAKE_PATH_TRANSLATIONS} -name qt_*.qm ! -name qt_help_*.qm`; do
+    for transfile in `find ${D}/${OE_QMAKE_PATH_TRANSLATIONS} -name qmlviewer_*.qm -o -name qtquick1_*.qm -o -name qt_*.qm ! -name qt_help_*.qm`; do
         rm $transfile
     done
 }
@@ -98,4 +98,4 @@ FILES:${PN}-qthelp = " \
     ${OE_QMAKE_PATH_TRANSLATIONS}/qt_help_*.qm \
 "
 
-SRCREV = "726e47301f7e0e0a85534e7686f00521de15f1f6"
+SRCREV = "v5.12.12"
